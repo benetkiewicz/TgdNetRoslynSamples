@@ -29,13 +29,15 @@ class Foo
             // FindControllersWithWalker();
             //FindControllersOfType();
             //SyntaxTreeIncorrect();
-            AppDomainRun();
+            //AppDomainRun();
+            //SimpleCompilation();
+            AccessibleField();
         }
 
         public static void AppDomainRun()
         {
             
-            byte[] assembly = CompilationWrapper.Compile(source);
+            byte[] assembly = CompilationWrapper.CompileToBytes(source);
             //var type = assembly.GetType("Foo");
             //var method = type.GetMethod("Run");
             //var result = method.Invoke(null, new object[] { });
@@ -49,7 +51,7 @@ class Foo
 
         private static Assembly AppDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
-            return Assembly.Load(CompilationWrapper.Compile(source));
+            return Assembly.Load(CompilationWrapper.CompileToBytes(source));
         }
 
         public static void SyntaxTreeIncorrect()
@@ -132,6 +134,46 @@ class Foo
 
                 base.VisitClassDeclaration(node);
             }
+        }
+
+        private static void SimpleCompilation()
+        {
+            string code = "class Test { void Foo() { } }";
+            var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
+            var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var compilation = CSharpCompilation.Create("TestAsm", new[] { CSharpSyntaxTree.ParseText(code) }, new[] { mscorlib }, compilationOptions);
+            foreach(var info in compilation.GetDiagnostics())
+            {
+                Console.WriteLine(info);
+            }
+        }
+
+        private static void AccessibleField()
+        {
+            string code = @"
+public class Foo 
+{ 
+    protected string Bar { get; set; } 
+}
+public class Baz : Foo
+{
+    public void DoWork()
+    {
+        System.Console.WriteLine(Bar);
+    }
+}
+";
+            var compilation = CompilationWrapper.Compile(code);
+            //foreach (var info in compilation.GetDiagnostics())
+            //{
+            //    Console.WriteLine(info);
+            //}
+            var syntaxTree = CSharpSyntaxTree.ParseText(source);
+            var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
+            var invocations = syntaxTree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
+            var barArgument = invocations[0].ArgumentList.Arguments[0].Expression as IdentifierNameSyntax;
+            var barSymbol = semanticModel.GetSymbolInfo(barArgument);
         }
     }
 }

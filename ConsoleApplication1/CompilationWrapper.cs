@@ -14,17 +14,9 @@ namespace ConsoleApplication1
 {
     public class CompilationWrapper
     {
-        public static byte[] Compile(params string[] sources)
+        public static byte[] CompileToBytes(params string[] sources)
         {
-            var assemblyFileName = "testAsm";
-            var compilation = CSharpCompilation.Create(assemblyFileName,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary),
-                syntaxTrees: from source in sources
-                             select CSharpSyntaxTree.ParseText(source),
-                references: new[]
-        {
-            MetadataReference.CreateFromAssembly(typeof(object).Assembly)
-        });
+            var compilation = Compile(sources);
 
             EmitResult emitResult;
 
@@ -40,6 +32,16 @@ namespace ConsoleApplication1
 
             var message = string.Join("\r\n", emitResult.Diagnostics);
             throw new ApplicationException(message);
+        }
+
+        public static CSharpCompilation Compile(params string[] sources)
+        {
+            var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
+            var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var syntaxTrees = from source in sources
+                             select CSharpSyntaxTree.ParseText(source);
+            var compilation = CSharpCompilation.Create("TestAsm", syntaxTrees, new[] { mscorlib }, compilationOptions);
+            return compilation;
         }
     }
 }
