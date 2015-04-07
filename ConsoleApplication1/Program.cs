@@ -163,12 +163,14 @@ public class Baz : Foo
     }
 }
 ";
-            var compilation = CompilationWrapper.Compile(code);
-            //foreach (var info in compilation.GetDiagnostics())
-            //{
-            //    Console.WriteLine(info);
-            //}
-            var syntaxTree = CSharpSyntaxTree.ParseText(source);
+            var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
+            var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var syntaxTree = CSharpSyntaxTree.ParseText(code);
+            var compilation = CSharpCompilation.Create("TestAsm", new[] { syntaxTree }, new[] { mscorlib }, compilationOptions);
+            foreach (var info in compilation.GetDiagnostics())
+            {
+                Console.WriteLine(info);
+            }
             var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
             var invocations = syntaxTree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();

@@ -16,6 +16,11 @@ namespace ConsoleApplication1
     {
         public static byte[] CompileToBytes(params string[] sources)
         {
+            if (sources == null)
+            {
+                return null;
+            }
+
             var compilation = Compile(sources);
 
             EmitResult emitResult;
