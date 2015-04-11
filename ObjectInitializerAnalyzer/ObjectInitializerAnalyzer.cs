@@ -13,7 +13,7 @@ namespace ObjectInitializerAnalyzer
     [DiagnosticAnalyzer(Microsoft.CodeAnalysis.LanguageNames.CSharp)]
     public class ObjectInitializerAnalyzer : DiagnosticAnalyzer
     {
-        const string DiagnosticId = "TGD1";
+        internal const string DiagnosticId = "TGD1";
         const string MessageFormat = "I hate OI";
         const string Category = "Naming";
         const string Title = "Do not use OI";
