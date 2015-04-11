@@ -12,46 +12,22 @@ using System.Reflection;
 
 namespace ConsoleApplication1
 {
-    class Program
+    class Foo
     {
-        static string source = @"using System;
-class Foo
-{
-    public static string Run()
-    {
-        return typeof(Foo).ToString();
-    }
-}";
         static void Main(string[] args)
         {
-            // SyntaxTree st = CSharpSyntaxTree.Create(SyntaxFactory.ClassDeclaration("Example").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))).NormalizeWhitespace());
-            //Console.WriteLine(st.ToString());
+            SyntaxTreeAPI();
             // FindControllersWithWalker();
             //FindControllersOfType();
             //SyntaxTreeIncorrect();
-            //AppDomainRun();
             //SimpleCompilation();
-            AccessibleField();
+            //AccessibleField();
         }
 
-        public static void AppDomainRun()
+        public static void SyntaxTreeAPI()
         {
-            
-            byte[] assembly = CompilationWrapper.CompileToBytes(source);
-            //var type = assembly.GetType("Foo");
-            //var method = type.GetMethod("Run");
-            //var result = method.Invoke(null, new object[] { });
-
-            //Console.WriteLine("Hurray, the expression returned " + result);
-            var appDomain = AppDomain.CreateDomain(Guid.NewGuid().ToString());
-            appDomain.AssemblyResolve += AppDomain_AssemblyResolve;
-            appDomain.Load(assembly);
-            var foo = appDomain.CreateInstanceAndUnwrap("testAsm", "Foo");
-        }
-
-        private static Assembly AppDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            return Assembly.Load(CompilationWrapper.CompileToBytes(source));
+            SyntaxTree st = CSharpSyntaxTree.Create(SyntaxFactory.ClassDeclaration("Example").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))).NormalizeWhitespace());
+            Console.WriteLine(st.ToString());
         }
 
         public static void SyntaxTreeIncorrect()
@@ -60,6 +36,7 @@ class Foo
             var root = syntaxTree.GetRoot();
             Console.WriteLine(root);
         }
+
         public static void FindControllersWithWalker()
         {
             var workSpace = MSBuildWorkspace.Create();
@@ -73,7 +50,7 @@ class Foo
                     new ClassWalker(semanticModel).Visit(syntaxTree.GetRoot());
                 }
             }
-                    
+
         }
 
         public static void FindControllersOfType()
@@ -119,7 +96,7 @@ class Foo
         {
             private SemanticModel semanticModel;
 
-            public ClassWalker(SemanticModel semanticModel) 
+            public ClassWalker(SemanticModel semanticModel)
             {
                 this.semanticModel = semanticModel;
             }
@@ -142,7 +119,7 @@ class Foo
             var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
             var compilation = CSharpCompilation.Create("TestAsm", new[] { CSharpSyntaxTree.ParseText(code) }, new[] { mscorlib }, compilationOptions);
-            foreach(var info in compilation.GetDiagnostics())
+            foreach (var info in compilation.GetDiagnostics())
             {
                 Console.WriteLine(info);
             }
