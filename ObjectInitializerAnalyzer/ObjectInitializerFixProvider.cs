@@ -72,17 +72,20 @@ namespace ObjectInitializerAnalyzer
         private async Task<Document> RewriteSetters(Document document, InitializerExpressionSyntax objectInitializer, CancellationToken c)
         {
             var root = await document.GetSyntaxRootAsync(c).ConfigureAwait(false);
-            var objectCreation = objectInitializer.Parent as ObjectCreationExpressionSyntax;
+            
             var block = GetContainingBlock(objectInitializer);
             var localDeclaration = GetContainingLocalDeclaration(objectInitializer);
-            //var objectName = objectCreation.DescendantNodes().OfType<IdentifierNameSyntax>().First(); //TODO: fix
-            //var objectCreationWithoutPropInit = objectCreation.RemoveNode(objectInitializer.Expressions.First(), SyntaxRemoveOptions.KeepNoTrivia);
-            var separatePropertyInit = SyntaxFactory.ParseStatement("x." + objectInitializer.Expressions.First().ToString() + ";");
-            var list = new List<SyntaxNode>();
-            list.Add(separatePropertyInit);
-            var newBlock = block.InsertNodesAfter(localDeclaration, list);
+            var variableDeclarator = localDeclaration.DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
+            string variableName = variableDeclarator.Identifier.ToString();
+            
+            var initializedProperties = new List<SyntaxNode>();
+            foreach (var propInitialization in objectInitializer.Expressions)
+            {
+                var separatePropInitialization = SyntaxFactory.ParseStatement(variableName + "." + propInitialization.ToString() + ";");
+                initializedProperties.Add(separatePropInitialization);
+            }
 
-            //var objectCreationWithTrailingPropInit = objectCreationWithoutPropInit.WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.Comment("//" + separatePropertyInit.ToString())));
+            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties);
             var newroot = root.ReplaceNode(block, newBlock).WithAdditionalAnnotations(Formatter.Annotation);
             return document.WithSyntaxRoot(newroot);
         }

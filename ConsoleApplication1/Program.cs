@@ -17,6 +17,7 @@ namespace ConsoleApplication1
         class X
         {
             public string Y { get; set; }
+            public int MyProperty { get; set; }
 
         }
         static void Main(string[] args)
@@ -31,7 +32,7 @@ namespace ConsoleApplication1
 
         public static void SyntaxTreeAPI()
         {
-            var x = new X { Y = "a" };
+            var x = new X() { Y = "a", MyProperty = 321 };
             SyntaxTree st = CSharpSyntaxTree.Create(SyntaxFactory.ClassDeclaration("Example").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))).NormalizeWhitespace());
             Console.WriteLine(st.ToString());
         }
