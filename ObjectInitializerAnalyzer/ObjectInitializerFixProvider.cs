@@ -82,12 +82,13 @@ namespace ObjectInitializerAnalyzer
             foreach (var propInitialization in objectInitializer.Expressions)
             {
                 var separatePropInitialization = SyntaxFactory.ParseStatement(variableName + "." + propInitialization.ToString() + ";");
+                separatePropInitialization = separatePropInitialization.WithTrailingTrivia(SyntaxFactory.Whitespace(Environment.NewLine));
                 initializedProperties.Add(separatePropInitialization);
             }
 
-            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties).WithAdditionalAnnotations(Formatter.Annotation);
+            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties);
             var refreshedObjectInitializer = newBlock.DescendantNodes().OfType<InitializerExpressionSyntax>().First();
-            var newBlock2 = newBlock.RemoveNode(refreshedObjectInitializer, SyntaxRemoveOptions.KeepNoTrivia);
+            var newBlock2 = newBlock.RemoveNode(refreshedObjectInitializer, SyntaxRemoveOptions.KeepEndOfLine);
             
             var newroot = root.ReplaceNode(block, newBlock2).WithAdditionalAnnotations(Formatter.Annotation);
             return document.WithSyntaxRoot(newroot);
