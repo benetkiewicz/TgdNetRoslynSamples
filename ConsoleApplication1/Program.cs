@@ -32,7 +32,7 @@ namespace ConsoleApplication1
 
         public static void SyntaxTreeAPI()
         {
-            var x = new X() { Y = "a", MyProperty = 321 };
+            var x = new X() { MyProperty = 123 };
             SyntaxTree st = CSharpSyntaxTree.Create(SyntaxFactory.ClassDeclaration("Example").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))).NormalizeWhitespace());
             Console.WriteLine(st.ToString());
         }

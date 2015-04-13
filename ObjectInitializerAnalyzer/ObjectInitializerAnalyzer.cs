@@ -46,6 +46,12 @@ namespace ObjectInitializerAnalyzer
                 return;
             }
 
+            if (expression.DescendantNodes().OfType<InitializerExpressionSyntax>().Any())
+            {
+                // do not support nested initializers
+                return;
+            }
+
             if (expression.Expressions.Any())
             {
                 context.ReportDiagnostic(Diagnostic.Create(Rule, expression.GetLocation()));

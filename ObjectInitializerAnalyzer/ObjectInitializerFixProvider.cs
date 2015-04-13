@@ -72,12 +72,12 @@ namespace ObjectInitializerAnalyzer
         private async Task<Document> RewriteSetters(Document document, InitializerExpressionSyntax objectInitializer, CancellationToken c)
         {
             var root = await document.GetSyntaxRootAsync(c).ConfigureAwait(false);
-            
+
             var block = GetContainingBlock(objectInitializer);
             var localDeclaration = GetContainingLocalDeclaration(objectInitializer);
             var variableDeclarator = localDeclaration.DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             string variableName = variableDeclarator.Identifier.ToString();
-            
+
             var initializedProperties = new List<SyntaxNode>();
             foreach (var propInitialization in objectInitializer.Expressions)
             {
@@ -85,8 +85,11 @@ namespace ObjectInitializerAnalyzer
                 initializedProperties.Add(separatePropInitialization);
             }
 
-            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties);
-            var newroot = root.ReplaceNode(block, newBlock).WithAdditionalAnnotations(Formatter.Annotation);
+            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties).WithAdditionalAnnotations(Formatter.Annotation);
+            var refreshedObjectInitializer = newBlock.DescendantNodes().OfType<InitializerExpressionSyntax>().First();
+            var newBlock2 = newBlock.RemoveNode(refreshedObjectInitializer, SyntaxRemoveOptions.KeepNoTrivia);
+            
+            var newroot = root.ReplaceNode(block, newBlock2).WithAdditionalAnnotations(Formatter.Annotation);
             return document.WithSyntaxRoot(newroot);
         }
     }
