@@ -116,6 +116,9 @@
     <Compile Include="CompilationWrapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RoslynHelper.cs" />
+    <Compile Include="Walkers\ClassWalker.cs" />
+    <Compile Include="Walkers\PropertiesWalker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

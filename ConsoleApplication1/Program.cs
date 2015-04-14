@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.Reflection;
+using ConsoleApplication1.Walkers;
 
 namespace ConsoleApplication1
 {
@@ -16,18 +17,44 @@ namespace ConsoleApplication1
     {
         class X
         {
-            public string Y { get; set; }
+            public X X2 { get; set; }
             public int MyProperty { get; set; }
 
         }
         static void Main(string[] args)
         {
-            SyntaxTreeAPI();
+            ThreeMethods();
+            // SyntaxTreeAPI();
             // FindControllersWithWalker();
             //FindControllersOfType();
             //SyntaxTreeIncorrect();
             //SimpleCompilation();
             //AccessibleField();
+        }
+
+        public static void ThreeMethods()
+        {
+            string code = "class Foo { public Foo() {} public int Bar { get; set; } public string Baz { get; set; } }";
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(code);
+            SyntaxNode root = syntaxTree.GetRoot();
+            Console.WriteLine("IsKind() ==================");
+            foreach (var node in root.DescendantNodes())
+            {
+                if (node.IsKind(SyntaxKind.PropertyDeclaration))
+                {
+                    Console.WriteLine(node);
+                }
+            }
+
+            Console.WriteLine("OfType<>() ==================");
+            var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+            foreach (var property in properties)
+            {
+                Console.WriteLine(property);
+            }
+
+            Console.WriteLine("Walker ==================");
+            new PropertiesWalker().Visit(root);
         }
 
         public static void SyntaxTreeAPI()
@@ -74,49 +101,12 @@ namespace ConsoleApplication1
                     foreach (var classSyntaxNode in classSyntaxNodes)
                     {
                         var classSymbol = model.GetDeclaredSymbol(classSyntaxNode);
-                        if (IsMvcController(classSymbol))
+                        if (RoslynHelper.IsMvcController(classSymbol))
                         {
                             Console.WriteLine(classSymbol);
                         }
                     }
                 }
-            }
-        }
-
-        private static bool IsMvcController(INamedTypeSymbol x)
-        {
-            var classBaseType = x.BaseType;
-            if (classBaseType.ToString() == "object")
-            {
-                return false;
-            }
-
-            if (classBaseType.ToString() == "System.Web.Mvc.Controller")
-            {
-                return true;
-            }
-
-            return IsMvcController(classBaseType);
-        }
-
-        class ClassWalker : CSharpSyntaxWalker
-        {
-            private SemanticModel semanticModel;
-
-            public ClassWalker(SemanticModel semanticModel)
-            {
-                this.semanticModel = semanticModel;
-            }
-
-            public override void VisitClassDeclaration(ClassDeclarationSyntax node)
-            {
-                var symbol = this.semanticModel.GetDeclaredSymbol(node);
-                if (IsMvcController(symbol))
-                {
-                    Console.WriteLine(symbol);
-                }
-
-                base.VisitClassDeclaration(node);
             }
         }
 
