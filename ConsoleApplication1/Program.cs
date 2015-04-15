@@ -23,7 +23,8 @@ namespace ConsoleApplication1
         }
         static void Main(string[] args)
         {
-            ThreeMethods();
+            //ShowingSymbolInfo();
+            //ThreeMethods();
             // SyntaxTreeAPI();
             // FindControllersWithWalker();
             //FindControllersOfType();
@@ -74,6 +75,7 @@ namespace ConsoleApplication1
         public static void FindControllersWithWalker()
         {
             var workSpace = MSBuildWorkspace.Create();
+            
             var solution = workSpace.OpenSolutionAsync(@"C:\Users\piotratais\Documents\Visual Studio 2015\Projects\RoslynTarget\RoslynTarget.sln").Result;
             foreach (var project in solution.Projects)
             {
@@ -127,7 +129,7 @@ namespace ConsoleApplication1
             string code = @"
 public class Foo 
 { 
-    protected string Bar { get; set; } 
+    private string Bar { get; set; } 
 }
 public class Baz : Foo
 {
@@ -137,19 +139,53 @@ public class Baz : Foo
     }
 }
 ";
+            // compilation
             var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
             var compilation = CSharpCompilation.Create("TestAsm", new[] { syntaxTree }, new[] { mscorlib }, compilationOptions);
+            // printing potential compilation errors
             foreach (var info in compilation.GetDiagnostics())
             {
                 Console.WriteLine(info);
             }
+
             var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
+            // get bar property syntax object from the tree
+            var barProperty = syntaxTree.GetRoot().DescendantNodes().OfType<PropertyDeclarationSyntax>().ToList()[0];
+            // get bar argument syntax object from the tree
             var invocations = syntaxTree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
             var barArgument = invocations[0].ArgumentList.Arguments[0].Expression as IdentifierNameSyntax;
-            var barSymbol = semanticModel.GetSymbolInfo(barArgument);
+            // get symbols for syntax objects
+            var barPropertySymbol = semanticModel.GetDeclaredSymbol(barProperty); // get
+            var barArgumentSymbolInfo = semanticModel.GetSymbolInfo(barArgument); // resolve
+
+            // analyze symbol data
+            bool isAccessible = semanticModel.IsAccessible(barArgument.GetLocation().SourceSpan.Start, barPropertySymbol);
+            Console.WriteLine("Property is accessible: " + isAccessible);
+            if (isAccessible)
+            {
+                Console.WriteLine("Found Symbol for Bar: " + barArgumentSymbolInfo.Symbol);
+            }
+            else
+            {
+                Console.WriteLine("Found candidate for Bar: " + barArgumentSymbolInfo.CandidateSymbols[0]);
+            }
+        }
+
+        public static void ShowingSymbolInfo()
+        {
+            string code = "class Foo { void Bar(int x) { Console.WriteLine(x); } }";
+            var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
+            var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var syntaxTree = CSharpSyntaxTree.ParseText(code);
+            var compilation = CSharpCompilation.Create("TestAsm", new[] { syntaxTree }, new[] { mscorlib }, compilationOptions);
+            var consoleWriteLine = syntaxTree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().ToList()[0];
+            var xParamExpression = consoleWriteLine.ArgumentList.Arguments[0].Expression;
+            var semanticModel = compilation.GetSemanticModel(syntaxTree);
+            var symbolInfo = semanticModel.GetSymbolInfo(xParamExpression);
+            Console.WriteLine("x is " + symbolInfo.Symbol + " of type " + symbolInfo.Symbol.Kind);
         }
     }
 }
