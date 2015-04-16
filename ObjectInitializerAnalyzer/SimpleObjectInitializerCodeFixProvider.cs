@@ -11,17 +11,18 @@ using Microsoft.CodeAnalysis.CodeActions;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Formatting;
+using System.Composition;
 
 namespace ObjectInitializerAnalyzer
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ObjectInitializerFixProvider))]
-    class ObjectInitializerFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SimpleObjectInitializerCodeFixProvider)), Shared]
+    public class SimpleObjectInitializerCodeFixProvider : CodeFixProvider
     {
         public override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
-                return ImmutableArray.Create(ObjectInitializerAnalyzer.DiagnosticId);
+                return ImmutableArray.Create(SimpleObjectInitializerAnalyzer.DiagnosticId);
             }
         }
 
@@ -35,10 +36,12 @@ namespace ObjectInitializerAnalyzer
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
-            var declarations = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<InitializerExpressionSyntax>();
+            var declarations = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<LocalDeclarationStatementSyntax>();
 
             if (declarations == null)
+            {
                 return;
+            }
 
             var declaration = declarations.First();
 
@@ -58,26 +61,14 @@ namespace ObjectInitializerAnalyzer
             return GetContainingBlock(node.Parent);
         }
 
-        private LocalDeclarationStatementSyntax GetContainingLocalDeclaration(SyntaxNode syntaxNode)
-        {
-            var localDeclaration = syntaxNode.Parent as LocalDeclarationStatementSyntax;
-            if (localDeclaration != null)
-            {
-                return localDeclaration;
-            }
-
-            return GetContainingLocalDeclaration(syntaxNode.Parent);
-        }
-
-        private async Task<Document> RewriteSetters(Document document, InitializerExpressionSyntax objectInitializer, CancellationToken c)
+        private async Task<Document> RewriteSetters(Document document, LocalDeclarationStatementSyntax declarationWithInitializer, CancellationToken c)
         {
             var root = await document.GetSyntaxRootAsync(c).ConfigureAwait(false);
 
-            var block = GetContainingBlock(objectInitializer);
-            var localDeclaration = GetContainingLocalDeclaration(objectInitializer);
-            var variableDeclarator = localDeclaration.DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
+            var variableDeclarator = declarationWithInitializer.DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
             string variableName = variableDeclarator.Identifier.ToString();
 
+            var objectInitializer = declarationWithInitializer.DescendantNodes().OfType<InitializerExpressionSyntax>().First();
             var initializedProperties = new List<SyntaxNode>();
             foreach (var propInitialization in objectInitializer.Expressions)
             {
@@ -86,11 +77,17 @@ namespace ObjectInitializerAnalyzer
                 initializedProperties.Add(separatePropInitialization);
             }
 
-            var newBlock = block.InsertNodesAfter(localDeclaration, initializedProperties);
-            var refreshedObjectInitializer = newBlock.DescendantNodes().OfType<InitializerExpressionSyntax>().First();
-            var newBlock2 = newBlock.RemoveNode(refreshedObjectInitializer, SyntaxRemoveOptions.KeepEndOfLine);
-            
-            var newroot = root.ReplaceNode(block, newBlock2).WithAdditionalAnnotations(Formatter.Annotation);
+            var declarationWithoutInitializer = declarationWithInitializer.RemoveNode(objectInitializer, SyntaxRemoveOptions.KeepExteriorTrivia);
+            declarationWithoutInitializer = declarationWithoutInitializer.WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+
+            var block = GetContainingBlock(declarationWithInitializer);
+            var newBlock = block.TrackNodes(declarationWithInitializer);
+            var refreshedObjectInitializer = newBlock.GetCurrentNode(declarationWithInitializer);
+            newBlock = newBlock.InsertNodesAfter(refreshedObjectInitializer, initializedProperties).WithAdditionalAnnotations(Formatter.Annotation);
+            refreshedObjectInitializer = newBlock.GetCurrentNode(declarationWithInitializer);
+            newBlock = newBlock.ReplaceNode(refreshedObjectInitializer, declarationWithoutInitializer);
+
+            var newroot = root.ReplaceNode(block, newBlock).WithAdditionalAnnotations(Formatter.Annotation);
             return document.WithSyntaxRoot(newroot);
         }
     }

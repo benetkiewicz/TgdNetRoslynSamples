@@ -38,8 +38,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ObjectInitializerAnalyzer.cs" />
-    <Compile Include="ObjectInitializerFixProvider.cs" />
+    <Compile Include="SimpleObjectInitializerAnalyzer.cs" />
+    <Compile Include="SimpleObjectInitializerCodeFixProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

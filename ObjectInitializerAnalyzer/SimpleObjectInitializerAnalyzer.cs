@@ -10,15 +10,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ObjectInitializerAnalyzer
 {
-    [DiagnosticAnalyzer(Microsoft.CodeAnalysis.LanguageNames.CSharp)]
-    public class ObjectInitializerAnalyzer : DiagnosticAnalyzer
+    [DiagnosticAnalyzer(LanguageNames.CSharp)]
+    public class SimpleObjectInitializerAnalyzer : DiagnosticAnalyzer
     {
-        internal const string DiagnosticId = "TGD1";
+        public const string DiagnosticId = "TGD1";
         const string MessageFormat = "I hate OI";
         const string Category = "Naming";
         const string Title = "Do not use OI";
         DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true);
-        
+
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -30,32 +30,25 @@ namespace ObjectInitializerAnalyzer
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterSyntaxNodeAction(AnalyzeObjectInitializer, SyntaxKind.ObjectInitializerExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeObjectInitializer, SyntaxKind.LocalDeclarationStatement);
         }
 
         private void AnalyzeObjectInitializer(SyntaxNodeAnalysisContext context)
         {
-            if (context.Node == null)
+            var localDeclarationExpression = context.Node as LocalDeclarationStatementSyntax;
+            if (localDeclarationExpression == null)
             {
                 return;
             }
 
-            var expression = context.Node as InitializerExpressionSyntax;
-            if (expression == null)
+            var innerObjectInitializers = localDeclarationExpression.DescendantNodes().OfType<InitializerExpressionSyntax>().ToList();
+            if (innerObjectInitializers.Count != 1)
             {
                 return;
             }
 
-            if (expression.DescendantNodes().OfType<InitializerExpressionSyntax>().Any())
-            {
-                // do not support nested initializers
-                return;
-            }
-
-            if (expression.Expressions.Any())
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rule, expression.GetLocation()));
-            }
+            var objectInitializer = innerObjectInitializers[0];
+            context.ReportDiagnostic(Diagnostic.Create(Rule, objectInitializer.GetLocation()));
         }
     }
 }

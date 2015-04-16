@@ -23,6 +23,8 @@ namespace ConsoleApplication1
         }
         static void Main(string[] args)
         {
+            var x = new X() { MyProperty = 12 };
+
             //ShowingSymbolInfo();
             //ThreeMethods();
             // SyntaxTreeAPI();
