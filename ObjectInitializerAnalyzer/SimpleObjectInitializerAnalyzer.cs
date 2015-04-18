@@ -41,6 +41,11 @@ namespace ObjectInitializerAnalyzer
                 return;
             }
 
+            if (localDeclarationExpression.Declaration.Variables.Count != 1)
+            {
+                return;
+            }
+
             var innerObjectInitializers = localDeclarationExpression.DescendantNodes().OfType<InitializerExpressionSyntax>().ToList();
             if (innerObjectInitializers.Count != 1)
             {
