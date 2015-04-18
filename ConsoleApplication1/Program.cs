@@ -10,25 +10,31 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.Reflection;
 using ConsoleApplication1.Walkers;
+using System.IO;
 
 namespace ConsoleApplication1
 {
     class Foo
     {
+        X PropX { get; set; }
         class X
         {
             public X X2 { get; set; }
             public int MyProperty { get; set; }
 
+            public X()
+            {
+                X2 = new X { MyProperty = 123 };
+            }
         }
         static void Main(string[] args)
         {
-            var x = new X() { MyProperty = 12 };
-
+            //X y = new X(), x = new X() { X2 = new X() };
             //ShowingSymbolInfo();
             //ThreeMethods();
             // SyntaxTreeAPI();
-            // FindControllersWithWalker();
+            //FindControllersWithWalker();
+            MVCProjectCompilation();
             //FindControllersOfType();
             //SyntaxTreeIncorrect();
             //SimpleCompilation();
@@ -77,8 +83,7 @@ namespace ConsoleApplication1
         public static void FindControllersWithWalker()
         {
             var workSpace = MSBuildWorkspace.Create();
-            
-            var solution = workSpace.OpenSolutionAsync(@"C:\Users\piotratais\Documents\Visual Studio 2015\Projects\RoslynTarget\RoslynTarget.sln").Result;
+            var solution = workSpace.OpenSolutionAsync(@"C:\Users\piotr\Documents\Visual Studio 2015\Projects\RoslynTarget\RoslynTarget.sln").Result;
             foreach (var project in solution.Projects)
             {
                 foreach (var document in project.Documents)
@@ -126,6 +131,18 @@ namespace ConsoleApplication1
             }
         }
 
+        private static void MVCProjectCompilation()
+        {
+            var workSpace = MSBuildWorkspace.Create();
+            var solution = workSpace.OpenSolutionAsync(@"C:\Users\piotr\Documents\Visual Studio 2015\Projects\RoslynTarget\RoslynTarget.sln").Result;
+            //solution.GetProjectDependencyGraph().GetTopologicallySortedProjects();
+            var project = solution.Projects.ToList()[0];
+            using (var ms = new MemoryStream())
+            {
+                var compilation = project.GetCompilationAsync().Result;
+                compilation.Emit(@"c:\temp\result.dll");
+            }
+        }
         private static void AccessibleField()
         {
             string code = @"
@@ -162,7 +179,6 @@ public class Baz : Foo
             // get symbols for syntax objects
             var barPropertySymbol = semanticModel.GetDeclaredSymbol(barProperty); // get
             var barArgumentSymbolInfo = semanticModel.GetSymbolInfo(barArgument); // resolve
-
             // analyze symbol data
             bool isAccessible = semanticModel.IsAccessible(barArgument.GetLocation().SourceSpan.Start, barPropertySymbol);
             Console.WriteLine("Property is accessible: " + isAccessible);
