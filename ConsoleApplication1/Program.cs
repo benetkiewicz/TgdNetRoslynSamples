@@ -9,36 +9,30 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.Reflection;
-using ConsoleApplication1.Walkers;
+using TgdNet.Walkers;
 using System.IO;
 
-namespace ConsoleApplication1
+namespace TgdNet
 {
-    class Foo
+    class RoslynSamples
     {
-        X PropX { get; set; }
-        class X
-        {
-            public X X2 { get; set; }
-            public int MyProperty { get; set; }
-
-            public X()
-            {
-                X2 = new X { MyProperty = 123 };
-            }
-        }
         static void Main(string[] args)
         {
-            //X y = new X(), x = new X() { X2 = new X() };
-            //ShowingSymbolInfo();
-            //ThreeMethods();
-            // SyntaxTreeAPI();
-            //FindControllersWithWalker();
-            MVCProjectCompilation();
-            //FindControllersOfType();
+            /* Syntax */
+            //SyntaxTreeAPI();
             //SyntaxTreeIncorrect();
-            //SimpleCompilation();
-            //AccessibleField();
+            //ThreeMethods();
+
+            /* Compilation and workspaces */
+            // SimpleCompilation();
+            //MVCProjectCompilation();
+
+            /* Semantics */
+            //ShowingSymbolInfo();
+            AccessibleField();
+
+            //FindControllersWithWalker();
+            //FindControllersOfType();
         }
 
         public static void ThreeMethods()
@@ -68,14 +62,19 @@ namespace ConsoleApplication1
 
         public static void SyntaxTreeAPI()
         {
-            var x = new X() { MyProperty = 123 };
-            SyntaxTree st = CSharpSyntaxTree.Create(SyntaxFactory.ClassDeclaration("Example").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))).NormalizeWhitespace());
+            SyntaxTree st = CSharpSyntaxTree.Create(
+                SyntaxFactory.ClassDeclaration("Example")
+                    .WithModifiers(
+                        SyntaxFactory.TokenList(
+                            SyntaxFactory.Token(SyntaxKind.PublicKeyword), 
+                            SyntaxFactory.Token(SyntaxKind.StaticKeyword))
+                        ));
             Console.WriteLine(st.ToString());
         }
 
         public static void SyntaxTreeIncorrect()
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText("class Test { void Foo() { } int a }"); // TODO: contains diagnostics?
+            var syntaxTree = CSharpSyntaxTree.ParseText("class Test { void Foo() { } int a /* missing ; */ }"); 
             var root = syntaxTree.GetRoot();
             Console.WriteLine(root);
         }
@@ -143,12 +142,13 @@ namespace ConsoleApplication1
                 compilation.Emit(@"c:\temp\result.dll");
             }
         }
+
         private static void AccessibleField()
         {
             string code = @"
 public class Foo 
 { 
-    private string Bar { get; set; } 
+    protected string Bar { get; set; } 
 }
 public class Baz : Foo
 {
@@ -163,6 +163,7 @@ public class Baz : Foo
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
             var compilation = CSharpCompilation.Create("TestAsm", new[] { syntaxTree }, new[] { mscorlib }, compilationOptions);
+
             // printing potential compilation errors
             foreach (var info in compilation.GetDiagnostics())
             {
@@ -195,15 +196,31 @@ public class Baz : Foo
         public static void ShowingSymbolInfo()
         {
             string code = "class Foo { void Bar(int x) { Console.WriteLine(x); } }";
+
+            // compilation: boring stuff
             var mscorlib = MetadataReference.CreateFromAssembly(typeof(object).Assembly);
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
             var compilation = CSharpCompilation.Create("TestAsm", new[] { syntaxTree }, new[] { mscorlib }, compilationOptions);
+            var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
             var consoleWriteLine = syntaxTree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().ToList()[0];
             var xParamExpression = consoleWriteLine.ArgumentList.Arguments[0].Expression;
-            var semanticModel = compilation.GetSemanticModel(syntaxTree);
             var symbolInfo = semanticModel.GetSymbolInfo(xParamExpression);
-            Console.WriteLine("x is " + symbolInfo.Symbol + " of type " + symbolInfo.Symbol.Kind);
+
+            Console.WriteLine("x is of type " + symbolInfo.Symbol + " and of kind " + symbolInfo.Symbol.Kind);
+        }
+
+        X PropX { get; set; }
+        class X
+        {
+            public X X2 { get; set; }
+            public int MyProperty { get; set; }
+
+            public X()
+            {
+                X2 = new X() { MyProperty = 123 };
+            }
         }
     }
 }
