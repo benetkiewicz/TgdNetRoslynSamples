@@ -19,17 +19,17 @@ namespace TgdNet
         static void Main(string[] args)
         {
             /* Syntax */
-            //SyntaxTreeAPI();
+            SyntaxTreeAPI();
             //SyntaxTreeIncorrect();
             //ThreeMethods();
 
             /* Compilation and workspaces */
-            // SimpleCompilation();
+            //SimpleCompilation();
             //MVCProjectCompilation();
 
             /* Semantics */
             //ShowingSymbolInfo();
-            AccessibleField();
+            //AccessibleField();
 
             //FindControllersWithWalker();
             //FindControllersOfType();
@@ -49,7 +49,8 @@ namespace TgdNet
                 }
             }
 
-            Console.WriteLine("OfType<>() ==================");
+            const string label = "OfType<>() ==================";
+            Console.WriteLine(label);
             var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
             foreach (var property in properties)
             {
@@ -66,15 +67,15 @@ namespace TgdNet
                 SyntaxFactory.ClassDeclaration("Example")
                     .WithModifiers(
                         SyntaxFactory.TokenList(
-                            SyntaxFactory.Token(SyntaxKind.PublicKeyword), 
+                            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                             SyntaxFactory.Token(SyntaxKind.StaticKeyword))
-                        ));
+                        ).NormalizeWhitespace());
             Console.WriteLine(st.ToString());
         }
 
         public static void SyntaxTreeIncorrect()
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText("class Test { void Foo() { } int a /* missing ; */ }"); 
+            var syntaxTree = CSharpSyntaxTree.ParseText("class Test { void Foo() { } int a /* missing ; */ }");
             var root = syntaxTree.GetRoot();
             Console.WriteLine(root);
         }
@@ -148,7 +149,7 @@ namespace TgdNet
             string code = @"
 public class Foo 
 { 
-    protected string Bar { get; set; } 
+    private string Bar { get; set; } 
 }
 public class Baz : Foo
 {
@@ -209,6 +210,8 @@ public class Baz : Foo
             var symbolInfo = semanticModel.GetSymbolInfo(xParamExpression);
 
             Console.WriteLine("x is of type " + symbolInfo.Symbol + " and of kind " + symbolInfo.Symbol.Kind);
+            var foo = new X();
+            foo.MyProperty = 123;
         }
 
         X PropX { get; set; }
